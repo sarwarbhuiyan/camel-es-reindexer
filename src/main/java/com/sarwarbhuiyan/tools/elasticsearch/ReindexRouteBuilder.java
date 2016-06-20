@@ -130,7 +130,7 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		.to("seda:bulkRequests");
 		
 		from("seda:bulkRequests?concurrentConsumers="+this.outputWorkers)
-		.to("eshttp://elasticsearch?ip=localhost&port=3000&operation=BULK_INDEX&indexName=logstash-1995-1");
+		.to(targetRouteOptionsBuilder.toString());
 	}
 	
 	
