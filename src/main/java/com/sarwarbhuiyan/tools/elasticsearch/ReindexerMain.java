@@ -20,7 +20,7 @@ public class ReindexerMain {
 		options.addOption(Option.builder().argName("targetHost").hasArg().desc("Target Elasticsearch Host").longOpt("targetHost").build());
 		options.addOption(Option.builder().argName("targetPort").hasArg().desc("Target Elasticsearch Port").longOpt("targetPort").build());
 		options.addOption(Option.builder().argName("sourceIndex").hasArg().desc("Source Index").longOpt("sourceIndex").required().build());
-		options.addOption(Option.builder().argName("targetIndex").hasArg().desc("Target Index").longOpt("targetIndex").required().build());
+		options.addOption(Option.builder().argName("targetIndex").hasArg().desc("Target Index").longOpt("targetIndex").build());
 		options.addOption(Option.builder().argName("preserveIDs").hasArg(false).desc("Preserve IDs?").longOpt("preserveIDs").build());
 		options.addOption(Option.builder().argName("bulkSize").hasArg().desc("Bulk Size (default: 500)").longOpt("bulkSize").build());
 		options.addOption(Option.builder().argName("scrollPeriod").hasArg().desc("Scroll Period (default: 1m)").longOpt("scrollPeriod").build());

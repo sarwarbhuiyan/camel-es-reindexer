@@ -18,7 +18,7 @@ public class ReindexRouteBuilder extends RouteBuilder {
 	private String sourceIndex = null;
 	private String targetIndex = null;
 	private Object scrollSize;
-	
+
 	public int getBulkSize() {
 		return bulkSize;
 	}
@@ -114,15 +114,16 @@ public class ReindexRouteBuilder extends RouteBuilder {
 								 .append("indexName=").append(this.sourceIndex).append("&")
 								 .append("scrollSize=").append(this.bulkSize).append("&")
 								 .append("scrollPeriod=").append(this.scrollPeriod);
-		
+
 		StringBuilder targetRouteOptionsBuilder = new StringBuilder();
 		targetRouteOptionsBuilder.append("eshttp://elasticsearch?")
 								 .append("ip=").append(this.targetHost).append("&")
 								 .append("port=").append(this.targetPort).append("&")
 								 .append("operation=BULK_INDEX").append("&")
-								 .append("preserveIds=").append(this.preserveIDs).append("&")
-								 .append("indexName=").append(this.targetIndex);
-		
+								 .append("preserveIds=").append(this.preserveIDs);
+		if(this.targetIndex!=null)
+			targetRouteOptionsBuilder.append("&indexName=").append(this.targetIndex!=null?this.targetIndex:"");
+
 		from(sourceRouteOptionsBuilder.toString())
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.aggregate(constant(true), new BulkIndexStrategy())
@@ -130,11 +131,11 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		.forceCompletionOnStop()
 		.completionTimeout(1000)
 		.to("seda:bulkRequests");
-		
+
 		from("seda:bulkRequests?concurrentConsumers="+this.outputWorkers)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.to(targetRouteOptionsBuilder.toString());
 	}
-	
-	
+
+
 }
