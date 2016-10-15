@@ -1,30 +1,60 @@
 package com.sarwarbhuiyan.tools.elasticsearch;
 
+import java.util.EventObject;
+
+import org.apache.camel.CamelContext;
 import org.apache.camel.main.Main;
+import org.apache.camel.management.event.CamelContextStoppedEvent;
+import org.apache.camel.support.EventNotifierSupport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-public class ReindexerMain {
+public class ReindexerMain extends Main {
+	
+	class ShutdownEventNotifier extends EventNotifierSupport {
+		private Main main;
+		
+		public ShutdownEventNotifier(Main main) {
+			this.main = main;
+		}
+		
+		public void notify(EventObject event) throws Exception {
+			if(event instanceof CamelContextStoppedEvent) {
+				System.out.println("RECEIVED CAMEL CONTEXT STOPPED EVENT");
+				main.completed();
+			}
+		}
+		
+		public boolean isEnabled(EventObject event) {
+			return true;
+		}
+	}
+	
+	@Override
+	protected CamelContext createContext() {
+		CamelContext camelContext = super.createContext();
+		camelContext.getManagementStrategy().addEventNotifier(new ShutdownEventNotifier(this));
+		return camelContext;
+	}
 
 	public static void main(String[] args) {
 		
 		CommandLineParser parser = new DefaultParser();
 		
 		Options options = new Options();
-		options.addOption(Option.builder().argName("sourceHost").hasArg().desc("Source Elasticsearch Host").longOpt("sourceHost").build());
-		options.addOption(Option.builder().argName("sourcePort").hasArg().desc("Source Elasticsearch Port").longOpt("sourcePort").build());
-		options.addOption(Option.builder().argName("targetHost").hasArg().desc("Target Elasticsearch Host").longOpt("targetHost").build());
-		options.addOption(Option.builder().argName("targetPort").hasArg().desc("Target Elasticsearch Port").longOpt("targetPort").build());
-		options.addOption(Option.builder().argName("sourceIndex").hasArg().desc("Source Index").longOpt("sourceIndex").required().build());
-		options.addOption(Option.builder().argName("targetIndex").hasArg().desc("Target Index").longOpt("targetIndex").build());
-		options.addOption(Option.builder().argName("preserveIDs").hasArg(false).desc("Preserve IDs?").longOpt("preserveIDs").build());
-		options.addOption(Option.builder().argName("bulkSize").hasArg().desc("Bulk Size (default: 500)").longOpt("bulkSize").build());
-		options.addOption(Option.builder().argName("scrollPeriod").hasArg().desc("Scroll Period (default: 1m)").longOpt("scrollPeriod").build());
-		options.addOption(Option.builder().argName("outputWorkers").hasArg().desc("Output Workers (default: 2)").longOpt("outputWorkers").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("sourceHost").hasArg().desc("Source Elasticsearch Host").longOpt("sourceHost").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("sourcePort").hasArg().desc("Source Elasticsearch Port").longOpt("sourcePort").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("targetHost").hasArg().desc("Target Elasticsearch Host").longOpt("targetHost").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("targetPort").hasArg().desc("Target Elasticsearch Port").longOpt("targetPort").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("sourceIndex").hasArg().desc("Source Index").longOpt("sourceIndex").required().build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("targetIndex").hasArg().desc("Target Index").longOpt("targetIndex").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("preserveIDs").hasArg(false).desc("Preserve IDs?").longOpt("preserveIDs").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("bulkSize").hasArg().desc("Bulk Size (default: 500)").longOpt("bulkSize").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("scrollPeriod").hasArg().desc("Scroll Period (default: 1m)").longOpt("scrollPeriod").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("outputWorkers").hasArg().desc("Output Workers (default: 2)").longOpt("outputWorkers").build());
 		
 		try {
 			if(args.length < 1) {
@@ -54,11 +84,20 @@ public class ReindexerMain {
 			if(line.hasOption("outputWorkers"))
 				reindexRouteBuilder.setOutputWorkers(Integer.parseInt(line.getOptionValue("outputWorkers")));
 			
-			Main main = new Main();
+			final ReindexerMain main = new ReindexerMain();
+			main.enableHangupSupport();
 			main.addRouteBuilder(reindexRouteBuilder);
+			main.setDuration(-1);
 			main.run();
 			
-			
+//			CamelContext camelContext = new DefaultCamelContext();
+//			camelContext.addRoutes(reindexRouteBuilder);
+//			camelContext.getShutdownStrategy().setTimeout(-1);
+//			camelContext.start();
+//			
+//			Thread.sleep(10000);
+//			camelContext.stop();
+//			main.stop();
 		} catch (org.apache.commons.cli.ParseException e) {
 			System.out.println("Unexpected exception: " + e.getMessage());
 		} catch (NumberFormatException e) {

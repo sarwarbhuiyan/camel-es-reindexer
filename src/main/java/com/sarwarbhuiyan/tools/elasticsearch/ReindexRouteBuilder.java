@@ -2,6 +2,7 @@ package com.sarwarbhuiyan.tools.elasticsearch;
 
 import org.apache.camel.ShutdownRunningTask;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.main.Main;
 
 import com.sarwarbhuiyan.camel.component.elasticsearch.http.BulkIndexStrategy;
 
@@ -18,6 +19,8 @@ public class ReindexRouteBuilder extends RouteBuilder {
 	private String sourceIndex = null;
 	private String targetIndex = null;
 	private Object scrollSize;
+	
+	private Main main;
 
 	public int getBulkSize() {
 		return bulkSize;
@@ -98,6 +101,10 @@ public class ReindexRouteBuilder extends RouteBuilder {
 	public void setTargetIndex(String targetIndex) {
 		this.targetIndex = targetIndex;
 	}
+	
+	public void setMain(Main main) {
+		this.main = main;
+	}
 
 	public ReindexRouteBuilder(String sourceIndex, String targetIndex) {
 		this.sourceIndex = sourceIndex;
@@ -124,18 +131,23 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		if(this.targetIndex!=null)
 			targetRouteOptionsBuilder.append("&indexName=").append(this.targetIndex!=null?this.targetIndex:"");
 
+		
+		
+		
 		from(sourceRouteOptionsBuilder.toString())
+		.startupOrder(1)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.aggregate(constant(true), new BulkIndexStrategy())
 		.completionSize(this.bulkSize)
 		.forceCompletionOnStop()
-		.completionTimeout(1000)
+//		.completionTimeout(1000)
 		.to("seda:bulkRequests");
-
+		
 		from("seda:bulkRequests?concurrentConsumers="+this.outputWorkers)
+		.startupOrder(2)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.to(targetRouteOptionsBuilder.toString());
 	}
 
-
+    
 }
