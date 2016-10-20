@@ -3,8 +3,10 @@ package com.sarwarbhuiyan.tools.elasticsearch;
 import org.apache.camel.ShutdownRunningTask;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.main.Main;
+import org.apache.commons.lang.StringUtils;
 
 import com.sarwarbhuiyan.camel.component.elasticsearch.http.BulkIndexStrategy;
+import com.sarwarbhuiyan.camel.component.elasticsearch.http.BulkReindexStrategy;
 
 public class ReindexRouteBuilder extends RouteBuilder {
 
@@ -19,6 +21,7 @@ public class ReindexRouteBuilder extends RouteBuilder {
 	private String sourceIndex = null;
 	private String targetIndex = null;
 	private Object scrollSize;
+	private String scanQuery;
 	
 	private Main main;
 
@@ -121,7 +124,9 @@ public class ReindexRouteBuilder extends RouteBuilder {
 								 .append("indexName=").append(this.sourceIndex).append("&")
 								 .append("scrollSize=").append(this.bulkSize).append("&")
 								 .append("scrollPeriod=").append(this.scrollPeriod);
-
+		if(this.scanQuery!=null)
+			sourceRouteOptionsBuilder.append("&scanQuery=").append(this.scanQuery);
+		
 		StringBuilder targetRouteOptionsBuilder = new StringBuilder();
 		targetRouteOptionsBuilder.append("eshttp://elasticsearch?")
 								 .append("ip=").append(this.targetHost).append("&")
@@ -137,7 +142,7 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		from(sourceRouteOptionsBuilder.toString())
 		.startupOrder(1)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
-		.aggregate(constant(true), new BulkIndexStrategy())
+		.aggregate(constant(true), (this.preserveIDs?new BulkReindexStrategy():new BulkIndexStrategy()))
 		.completionSize(this.bulkSize)
 		.forceCompletionOnStop()
 //		.completionTimeout(1000)
@@ -147,6 +152,14 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		.startupOrder(2)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.to(targetRouteOptionsBuilder.toString());
+	}
+	
+	public String getScanQuery(String scanQuery) {
+		return this.scanQuery;
+	}
+
+	public void setScanQuery(String scanQuery) {
+		this.scanQuery = scanQuery;
 	}
 
     

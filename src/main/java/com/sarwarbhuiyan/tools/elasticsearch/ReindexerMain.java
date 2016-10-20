@@ -55,6 +55,7 @@ public class ReindexerMain extends Main {
 		options.addOption(org.apache.commons.cli.Option.builder().argName("bulkSize").hasArg().desc("Bulk Size (default: 500)").longOpt("bulkSize").build());
 		options.addOption(org.apache.commons.cli.Option.builder().argName("scrollPeriod").hasArg().desc("Scroll Period (default: 1m)").longOpt("scrollPeriod").build());
 		options.addOption(org.apache.commons.cli.Option.builder().argName("outputWorkers").hasArg().desc("Output Workers (default: 2)").longOpt("outputWorkers").build());
+		options.addOption(org.apache.commons.cli.Option.builder().argName("query").hasArg().desc("Query (default: { \"query\": \"{\"match_all\": {}}}").longOpt("query").build());
 		
 		try {
 			if(args.length < 1) {
@@ -83,6 +84,9 @@ public class ReindexerMain extends Main {
 				reindexRouteBuilder.setScrollPeriod(line.getOptionValue("scrollPeriod"));
 			if(line.hasOption("outputWorkers"))
 				reindexRouteBuilder.setOutputWorkers(Integer.parseInt(line.getOptionValue("outputWorkers")));
+			
+			if(line.hasOption("query"))
+				reindexRouteBuilder.setScanQuery(line.getOptionValue("query"));
 			
 			final ReindexerMain main = new ReindexerMain();
 			main.enableHangupSupport();
