@@ -24,7 +24,7 @@ usage: es-reindexer
     --sourcePort <sourcePort>         Source Elasticsearch Port
     --targetHost <targetHost>         Target Elasticsearch Host
     --targetIndex <targetIndex>       Target Index
-    --targetPort <targetPort>         Target Elasticsearch Port
+    --targetPort <targetPort>         Target Elasticsearch Port (Optional: if  unspecified will use original index names)
 
 ```
 
