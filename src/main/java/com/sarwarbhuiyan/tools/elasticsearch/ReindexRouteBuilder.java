@@ -1,9 +1,12 @@
 package com.sarwarbhuiyan.tools.elasticsearch;
 
+import java.util.concurrent.CountDownLatch;
+
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.ShutdownRunningTask;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.main.Main;
-import org.apache.commons.lang.StringUtils;
 
 import com.sarwarbhuiyan.camel.component.elasticsearch.http.BulkIndexStrategy;
 import com.sarwarbhuiyan.camel.component.elasticsearch.http.BulkReindexStrategy;
@@ -24,7 +27,7 @@ public class ReindexRouteBuilder extends RouteBuilder {
 	private String scanQuery;
 	
 	private Main main;
-
+	
 	public int getBulkSize() {
 		return bulkSize;
 	}
@@ -136,22 +139,29 @@ public class ReindexRouteBuilder extends RouteBuilder {
 		if(this.targetIndex!=null)
 			targetRouteOptionsBuilder.append("&indexName=").append(this.targetIndex!=null?this.targetIndex:"");
 
-		
-		
-		
 		from(sourceRouteOptionsBuilder.toString())
 		.startupOrder(1)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
-		.aggregate(constant(true), (this.preserveIDs?new BulkReindexStrategy():new BulkIndexStrategy()))
-		.completionSize(this.bulkSize)
-		.forceCompletionOnStop()
-//		.completionTimeout(1000)
-		.to("seda:bulkRequests");
+		.choice()
+			.when(body().isEqualTo("DONE"))
+			    .process(new Processor() {
+					public void process(Exchange exchange) throws Exception {
+						main.completed();
+					}
+				})
+			    .to("log:reindexer?level=INFO")
+			.otherwise()	
+			  .aggregate(constant(true), (this.preserveIDs?new BulkReindexStrategy():new BulkIndexStrategy()))
+		      .completionSize(this.bulkSize)
+		      .forceCompletionOnStop()
+		      .completionTimeout(60000)
+		      .to("seda:bulkRequests");
 		
 		from("seda:bulkRequests?concurrentConsumers="+this.outputWorkers)
 		.startupOrder(2)
 		.shutdownRunningTask(ShutdownRunningTask.CompleteAllTasks)
 		.to(targetRouteOptionsBuilder.toString());
+		
 	}
 	
 	public String getScanQuery(String scanQuery) {

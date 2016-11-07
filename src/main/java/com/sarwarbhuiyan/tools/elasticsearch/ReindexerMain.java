@@ -1,11 +1,7 @@
 package com.sarwarbhuiyan.tools.elasticsearch;
 
-import java.util.EventObject;
-
 import org.apache.camel.CamelContext;
 import org.apache.camel.main.Main;
-import org.apache.camel.management.event.CamelContextStoppedEvent;
-import org.apache.camel.support.EventNotifierSupport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -14,29 +10,14 @@ import org.apache.commons.cli.Options;
 
 public class ReindexerMain extends Main {
 	
-	class ShutdownEventNotifier extends EventNotifierSupport {
-		private Main main;
-		
-		public ShutdownEventNotifier(Main main) {
-			this.main = main;
-		}
-		
-		public void notify(EventObject event) throws Exception {
-			if(event instanceof CamelContextStoppedEvent) {
-				System.out.println("RECEIVED CAMEL CONTEXT STOPPED EVENT");
-				main.completed();
-			}
-		}
-		
-		public boolean isEnabled(EventObject event) {
-			return true;
-		}
-	}
+
 	
 	@Override
 	protected CamelContext createContext() {
 		CamelContext camelContext = super.createContext();
-		camelContext.getManagementStrategy().addEventNotifier(new ShutdownEventNotifier(this));
+		camelContext.disableJMX();
+		camelContext.setMessageHistory(false);
+		
 		return camelContext;
 	}
 
@@ -90,10 +71,10 @@ public class ReindexerMain extends Main {
 			
 			final ReindexerMain main = new ReindexerMain();
 			main.enableHangupSupport();
+			reindexRouteBuilder.setMain(main);
 			main.addRouteBuilder(reindexRouteBuilder);
 			main.setDuration(-1);
-			main.run();
-			
+			main.run();			
 //			CamelContext camelContext = new DefaultCamelContext();
 //			camelContext.addRoutes(reindexRouteBuilder);
 //			camelContext.getShutdownStrategy().setTimeout(-1);
